@@ -1,32 +1,34 @@
 @extends('layouts.app')
 
-@section
+@section('content')
 <div class="container mt-3">
   <h2>Products</h2>            
   <table class="table table-dark">
     <thead>
       <tr>
-        <th>Firstname</th>
-        <th>Lastname</th>
-        <th>Email</th>
+        <th>Name</th>
+        <th>Description</th>
+        <th>Price</th>
+        <th>Action</th>
       </tr>
     </thead>
     <tbody>
+      @foreach($products as $product)
       <tr>
-        <td>John</td>
-        <td>Doe</td>
-        <td>john@example.com</td>
+        <td>{{$product->name}}</td>
+        <td>{{$product->description}}</td>
+        <td>{{$product->price}}</td>
+        <form action="{{route('pay')}}" method="post">
+          @csrf
+          <input type="hidden" value="{{$product->name}}" name="name"/>
+          <input type="hidden" value="{{$product->description}}" name="description"/>
+          <input type="hidden" value="{{$product->price}}" name="price"/>
+          <input type="hidden" value="simons@gmail.com" name="email"/>
+          <input type="hidden" value="08123456786" name="phone"/>
+        <td><button class="btn btn-success" type="submit">Pay</button></td>
+        </form>
       </tr>
-      <tr>
-        <td>Mary</td>
-        <td>Moe</td>
-        <td>mary@example.com</td>
-      </tr>
-      <tr>
-        <td>July</td>
-        <td>Dooley</td>
-        <td>july@example.com</td>
-      </tr>
+     @endforeach
     </tbody>
   </table>
 </div>
