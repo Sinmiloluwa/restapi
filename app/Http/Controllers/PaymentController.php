@@ -6,6 +6,7 @@ use App\Models\Payment;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use KingFlamez\Rave\Facades\Rave as Flutterwave;
 
 class PaymentController extends Controller
@@ -49,7 +50,6 @@ class PaymentController extends Controller
 
     public function callback()
     {
-
         $transactionID = Flutterwave::getTransactionIDFromCallback();
         $data = Flutterwave::verifyTransaction($transactionID);
 
@@ -60,8 +60,6 @@ class PaymentController extends Controller
 
         elseif($data['data']['status'] == 'successful')
         {
-            
-
             echo 'Payment Successful';
         }
 
@@ -70,39 +68,55 @@ class PaymentController extends Controller
     public function webhook(Request $request)
     {
     //This verifies the webhook is sent from Flutterwave
-    $verified = Flutterwave::verifyWebhook();
+    // $verified = Flutterwave::verifyWebhook();
+    // print_r($verified);
 
-    // if it is a charge event, verify and confirm it is a successful transaction
-    if ($verified && $request->event == 'charge.completed' && $request->data->status == 'successful') {
-        $verificationData = Flutterwave::verifyTransaction($request->data['id']);
-        if ($verificationData['status'] === 'success') {
-           echo 'yes';
-        }
-        echo 'not successful';
+    // // if it is a charge event, verify and confirm it is a successful transaction
+    // if ($verified && $request->event == 'charge.completed' && $request->data->status == 'successful') {
+    //     $verificationData = Flutterwave::verifyPayment($request->data['id']);
+    //     if ($verificationData['status'] === 'success') {
+    //         DB::table('payments')->insert([
+    //             'trx_id' => $request->data['id'],
+    //             'email' => $request->data['customer']['email'],
+    //             'amount' => $request->data['amount'],
+    //             'products' => $request->data['customer']['name'],
+
+    //         ]);
+    //     }
+    //     echo 'not successful';
+    // }
+
+    // // if it is a transfer event, verify and confirm it is a successful transfer
+    // if ($verified && $request->event == 'transfer.completed') {
+
+    //     $transfer = Flutterwave::transfers()->fetch($request->data['id']);
+
+    //     if($transfer['data']['status'] === 'SUCCESSFUL') {
+    //         DB::table('payments')->where('trx_id', $request->data['id'])->update([
+    //             'status' => 'successful'
+    //         ]);
+
+    //     } else if ($transfer['data']['status'] === 'FAILED') {
+    //         DB::table('payments')->where('trx_id', $request->data['id'])->update([
+    //             'status' => 'failed'
+    //         ]);
+    //         // revert customer balance back
+    //     } else if ($transfer['data']['status'] === 'PENDING') {
+    //         DB::table('payments')->where('trx_id', $request->data['id'])->update([
+    //             'status' => 'pending'
+    //         ]);
+    //     }
+
+    //     }
+    $secretHash = env('FLW_SECRET_HASH');
+    $signature = $request->header('verif-hash');
+    if (!$signature || ($signature !== $secretHash)) {
+        // This request isn't from Flutterwave; discard
+        abort(401);
     }
-
-    // if it is a transfer event, verify and confirm it is a successful transfer
-    if ($verified && $request->event == 'transfer.completed') {
-
-        $transfer = Flutterwave::transfers()->fetch($request->data['id']);
-
-        if($transfer['data']['status'] === 'SUCCESSFUL') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'successful'
-            ]);
-
-        } else if ($transfer['data']['status'] === 'FAILED') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'failed'
-            ]);
-            // revert customer balance back
-        } else if ($transfer['data']['status'] === 'PENDING') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'pending'
-            ]);
-        }
-
-        }
+    $payload = $request->all();
+    // It's a good idea to log all received events.
+    Log::info($payload);
     }
 
 }

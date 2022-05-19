@@ -16,10 +16,11 @@ use App\Http\Controllers\PaymentController;
 |
 */
 
-Route::get('/{id}', function ($id) {
-        $product = Product::where('id', $id)->first();
-        return view('welcome', compact('product'));
-});
+Route::get('/', [ProductController::class, 'index'])->name('welcome');
+// Route::get('/{id}', function ($id) {
+//         $product = Product::where('id', $id)->first();
+//         return view('welcome', compact('product'));
+// });
 
 Auth::routes();
 
