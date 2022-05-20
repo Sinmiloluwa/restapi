@@ -64,9 +64,12 @@ class PaymentController extends Controller
                 'email' => $data['data']['customer']['email'],
                 'amount' => $data['data']['amount'],
                 'products' => $data['data']['customer']['name'],
+                'status' => 'pending'
             ]);
 
-            echo 'Payment Successful';
+            return response()->json([
+                'message' => 'payment successful'
+            ]);
         }
 
     }
@@ -76,39 +79,43 @@ class PaymentController extends Controller
     // This verifies the webhook is sent from Flutterwave
     $verified = Flutterwave::verifyWebhook();
 
-    // if it is a charge event, verify and confirm it is a successful transaction
-    if ($verified && $request->event == 'charge.completed' && $request->data->status == 'successful') {
-        $verificationData = Flutterwave::verifyPayment($request->data['id']);
-        if ($verificationData['status'] === 'success') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'success'
-            ]);
-        }
-        echo 'not successful';
-    }
-
-    // if it is a transfer event, verify and confirm it is a successful transfer
-    if ($verified && $request->event == 'transfer.completed') {
-
-        $transfer = Flutterwave::transfers()->fetch($request->data['id']);
-
-        if($transfer['data']['status'] === 'SUCCESSFUL') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'successful'
-            ]);
-
-        } else if ($transfer['data']['status'] === 'FAILED') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'failed'
-            ]);
-            // revert customer balance back
-        } else if ($transfer['data']['status'] === 'PENDING') {
-            DB::table('payments')->where('trx_id', $request->data['id'])->update([
-                'status' => 'pending'
-            ]);
+    // If the transaction exists
+    if(DB::table('payments')->where('trx_id', $request->data['id'])->exists())
+    {
+        // if it is a charge event, verify and confirm it is a successful transaction
+        if ($verified && $request->event == 'charge.completed' && $request->data->status == 'successful') {
+            $verificationData = Flutterwave::verifyPayment($request->data['id']);
+            if ($verificationData['status'] === 'success') {
+                DB::table('payments')->where('trx_id', $request->data['id'])->update([
+                    'status' => 'success'
+                ]);
+            }
+            echo 'not successful';
         }
 
+        // if it is a transfer event, verify and confirm it is a successful transfer
+        if ($verified && $request->event == 'transfer.completed') {
+
+            $transfer = Flutterwave::transfers()->fetch($request->data['id']);
+
+            if($transfer['data']['status'] === 'SUCCESSFUL') {
+                DB::table('payments')->where('trx_id', $request->data['id'])->update([
+                    'status' => 'successful'
+                ]);
+
+            } else if ($transfer['data']['status'] === 'FAILED') {
+                DB::table('payments')->where('trx_id', $request->data['id'])->update([
+                    'status' => 'failed'
+                ]);
+
+            } else if ($transfer['data']['status'] === 'PENDING') {
+                DB::table('payments')->where('trx_id', $request->data['id'])->update([
+                    'status' => 'pending'
+                ]);
+            }
+
+            }
         }
-    }
+    } 
 
 }

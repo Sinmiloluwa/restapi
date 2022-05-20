@@ -35,6 +35,10 @@ Route::prefix('admin')->group(function () {
 Route::group(['middleware' => 'auth:sanctum'], function () {
 // The route that the button calls to initialize payment
     Route::post('/pay', [PaymentController::class, 'initialize'])->name('pay');
+
+    // The callback url after a payment
+    Route::get('/rave/callback', [PaymentController::class, 'callback'])->name('callback');
+    
 // The webhook url after a payment
 // Using flutterwave webhook test url for the sake of this project
     Route::post('/webhook/flutterwave', [PaymentController::class, 'webhook'])->name('webhook');
